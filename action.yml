@@ -1,0 +1,94 @@
+name: PyLODE Ontology to GitHub Pages
+
+description: 'Greet someone'
+inputs:
+  baseuri:
+    description: 'Base URI of ontology'
+    default: https://w3id.org/sal/${{ github.repository_owner }}/${{ github.event.repository.name }}
+  output_dir:
+    description: 'Output directory'
+    default: ./sal-gha
+  deploy:
+    description: 'Deploy to Github Pages (bool)'
+    default: 'true'
+outputs:
+  url:
+    description: "Pages URL"
+    value: ${{ steps.deployment.outputs.page_url }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v5
+
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    - name: Build Pages
+      uses: vliz-be-opsci/pylode-to-pages@v0
+      with:
+        baseuri: ${{ inputs.baseuri }}
+        outfolder: ${{ inputs.output_dir }}
+
+    - name: Convert TTL to JSON-LD and XML
+      shell: bash
+      run: |
+        pip install rdflib
+        sudo chmod 777 ${{ inputs.output_dir }}
+        python <<'EOF'
+        from pathlib import Path
+        from rdflib import Graph
+
+        outdir = Path("${{ inputs.output_dir }}")
+        outdir.mkdir(parents=True, exist_ok=True)
+
+        for ttl in outdir.rglob("*.ttl"):
+            g = Graph()
+            g.parse(ttl, format="turtle")
+
+            jsonld = ttl.with_suffix(".json")
+            g.serialize(
+                destination=outdir / jsonld.name,
+                format="json-ld",
+                indent=2
+            )
+
+            xml = ttl.with_suffix(".xml")
+            g.serialize(
+                destination=outdir / xml.name,
+                format="xml",
+                indent=2
+            )
+        EOF
+        perl -0777 -i -pe '
+          s#<a href="([^"]+)\.ttl" class="myButton right-align">\.ttl</a>#
+          <div class="right-align">
+            <a href="$1.ttl" class="myButton">.ttl</a>
+            <a href="$1.json" class="myButton">.json</a>
+            <a href="$1.xml" class="myButton">.xml</a>
+          </div>
+          #gs' ${{ inputs.output_dir }}/index.html
+
+    - name: Upload Pages Artifact
+      uses: actions/upload-pages-artifact@v5
+      with:
+        path: ${{ inputs.output_dir }}
+
+    - name: Delete Pages artifacts
+      shell: bash
+      if: failure()
+      run: |
+        gh api \
+          --method DELETE \
+          repos/${{ github.repository }}/actions/artifacts/${{ github.artifact_id }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+
+    - name: Deploy to GitHub Pages
+      if: |
+        inputs.deploy == 'true' &&
+        github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      id: deployment
+      uses: actions/deploy-pages@v4
