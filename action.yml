@@ -12,7 +12,9 @@ inputs:
     description: 'Output directory'
     default: ./sal-gha
   deploy:
-    description: 'Deploy to Github Pages (bool)'
+    description: |
+      Deploy to Github Pages (bool). Set to false to only generate the docs into
+      output_dir, leaving the pages artifact upload and deploy to the caller
     default: 'true'
 outputs:
   url:
@@ -22,14 +24,13 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v5
-
     - name: Setup Python
       uses: actions/setup-python@v6
       with:
         python-version: '3.12'
 
     - name: Ensure pages deployment enabled
+      if: inputs.deploy == 'true'
       shell: bash
       run: |
         curl -L \
@@ -40,6 +41,10 @@ runs:
           -d '{
             "build_type": "workflow"
           }'
+
+    - name: Prepare output dir
+      shell: bash
+      run: mkdir -p "${{ inputs.output_dir }}"
 
     - name: Build Pages
       uses: vliz-be-opsci/pylode-to-pages@v0
@@ -109,13 +114,14 @@ runs:
         EOF
 
     - name: Upload Pages Artifact
+      if: inputs.deploy == 'true'
       uses: actions/upload-pages-artifact@v5
       with:
         path: ${{ inputs.output_dir }}
 
     - name: Delete Pages artifacts
       shell: bash
-      if: failure()
+      if: failure() && inputs.deploy == 'true'
       run: |
         gh api \
           --method DELETE \
