@@ -12,15 +12,7 @@ inputs:
     description: 'Deploy to Github Pages (bool)'
     default: 'true'
   file_regex:
-    description: >-
-      Python regex picking which files under output_dir get converted to JSON-LD
-      and XML. Applied with re.search to each file path relative to output_dir,
-      using forward slashes (e.g. "sub/onto-two.ttl"). Defaults to every .ttl
-      file. Note that pylode only ever indexes **/*.ttl, so this is for
-      narrowing the set (e.g. '^(?!.*_draft).*\.ttl$' to skip drafts) rather
-      than pulling in other extensions. Keep the trailing $ — pylode writes a
-      <name>.ttl.bak backup beside each ontology, which an unanchored pattern
-      like '\.ttl' would match.
+    description: 'Regex matched against paths under output_dir to pick which ontologies to convert'
     default: '.*\.ttl$'
 outputs:
   url:
