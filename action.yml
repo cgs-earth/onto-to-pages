@@ -13,9 +13,14 @@ inputs:
     default: 'true'
   file_regex:
     description: >-
-      Python regex used to pick which files under output_dir get converted to
-      JSON-LD and XML. Matched against each file path relative to output_dir.
-      Defaults to every .ttl file.
+      Python regex picking which files under output_dir get converted to JSON-LD
+      and XML. Applied with re.search to each file path relative to output_dir,
+      using forward slashes (e.g. "sub/onto-two.ttl"). Defaults to every .ttl
+      file. Note that pylode only ever indexes **/*.ttl, so this is for
+      narrowing the set (e.g. '^(?!.*_draft).*\.ttl$' to skip drafts) rather
+      than pulling in other extensions. Keep the trailing $ — pylode writes a
+      <name>.ttl.bak backup beside each ontology, which an unanchored pattern
+      like '\.ttl' would match.
     default: '.*\.ttl$'
 outputs:
   url:
@@ -57,7 +62,7 @@ runs:
         FILE_REGEX: ${{ inputs.file_regex }}
       run: |
         pip install rdflib
-        sudo chmod 777 "$OUTPUT_DIR"
+        sudo chmod -R 777 "$OUTPUT_DIR"
         python <<'EOF'
         import os
         import re
@@ -74,34 +79,48 @@ runs:
             if p.is_file() and pattern.search(p.relative_to(outdir).as_posix())
         )
         print(f"{len(matched)} file(s) matched {pattern.pattern!r}")
+        if not matched:
+            raise Exception(f"No files under {outdir} matched {pattern.pattern!r}")
 
         for ttl in matched:
-            print(f"converting {ttl}")
             g = Graph()
-            g.parse(ttl, format="turtle")
+            try:
+                g.parse(ttl, format="turtle")
+            except Exception as err:
+                # a widened file_regex can pick up non-turtle files; skipping one
+                # of those should not fail the whole pages deploy
+                print(f"WARNING: file={ttl} could not parse as turtle, skipping: {err}")
+                continue
+            print(f"converting {ttl}")
 
-            jsonld = ttl.with_suffix(".json")
-            g.serialize(
-                destination=outdir / jsonld.name,
-                format="json-ld",
-                indent=2
-            )
+            # write beside the source so the paths match the hrefs pylode puts in
+            # index.html, which are relative to outdir and include any subfolder
+            g.serialize(destination=ttl.with_suffix(".json"), format="json-ld", indent=2)
+            g.serialize(destination=ttl.with_suffix(".xml"), format="xml", indent=2)
 
-            xml = ttl.with_suffix(".xml")
-            g.serialize(
-                destination=outdir / xml.name,
-                format="xml",
-                indent=2
+        # pylode gives every ontology a lone .ttl download button; expand it to
+        # .ttl/.json/.xml, but only where the conversions were successful
+        button = re.compile(r'<a href="([^"]+)\.ttl" class="myButton right-align">\.ttl</a>')
+        expanded = []
+
+        def expand(match):
+            ref = match.group(1)
+            if not all((outdir / f"{ref}.{ext}").is_file() for ext in ("json", "xml")):
+                return match.group(0)
+            expanded.append(ref)
+            links = "".join(
+                f'<a href="{ref}.{ext}" class="myButton">.{ext}</a>'
+                for ext in ("ttl", "json", "xml")
             )
+            return f'<div class="right-align">{links}</div>'
+
+        index = outdir / "index.html"
+        if index.is_file():
+            index.write_text(button.sub(expand, index.read_text()))
+            print(f"expanded download buttons for {len(expanded)} entr(ies): {expanded}")
+        else:
+            raise Exception(f"{index} not found, skipped download button rewrite")
         EOF
-        perl -0777 -i -pe '
-          s#<a href="([^"]+)\.ttl" class="myButton right-align">\.ttl</a>#
-          <div class="right-align">
-            <a href="$1.ttl" class="myButton">.ttl</a>
-            <a href="$1.json" class="myButton">.json</a>
-            <a href="$1.xml" class="myButton">.xml</a>
-          </div>
-          #gs' ${{ inputs.output_dir }}/index.html
 
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v5
