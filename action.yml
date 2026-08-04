@@ -11,6 +11,12 @@ inputs:
   deploy:
     description: 'Deploy to Github Pages (bool)'
     default: 'true'
+  file_regex:
+    description: >-
+      Python regex used to pick which files under output_dir get converted to
+      JSON-LD and XML. Matched against each file path relative to output_dir.
+      Defaults to every .ttl file.
+    default: '.*\.ttl$'
 outputs:
   url:
     description: "Pages URL"
@@ -46,17 +52,31 @@ runs:
 
     - name: Convert TTL to JSON-LD and XML
       shell: bash
+      env:
+        OUTPUT_DIR: ${{ inputs.output_dir }}
+        FILE_REGEX: ${{ inputs.file_regex }}
       run: |
         pip install rdflib
-        sudo chmod 777 ${{ inputs.output_dir }}
+        sudo chmod 777 "$OUTPUT_DIR"
         python <<'EOF'
+        import os
+        import re
         from pathlib import Path
         from rdflib import Graph
 
-        outdir = Path("${{ inputs.output_dir }}")
+        outdir = Path(os.environ["OUTPUT_DIR"])
         outdir.mkdir(parents=True, exist_ok=True)
 
-        for ttl in outdir.rglob("*.ttl"):
+        pattern = re.compile(os.environ["FILE_REGEX"])
+
+        matched = sorted(
+            p for p in outdir.rglob("*")
+            if p.is_file() and pattern.search(p.relative_to(outdir).as_posix())
+        )
+        print(f"{len(matched)} file(s) matched {pattern.pattern!r}")
+
+        for ttl in matched:
+            print(f"converting {ttl}")
             g = Graph()
             g.parse(ttl, format="turtle")
 
