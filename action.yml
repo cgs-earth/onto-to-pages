@@ -42,10 +42,6 @@ runs:
             "build_type": "workflow"
           }'
 
-    - name: Prepare output dir
-      shell: bash
-      run: mkdir -p "${{ inputs.output_dir }}"
-
     - name: Build Pages
       uses: vliz-be-opsci/pylode-to-pages@v0
       with:
