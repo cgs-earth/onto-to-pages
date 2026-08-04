@@ -5,15 +5,15 @@ inputs:
   baseuri:
     description: 'Base URI of ontology'
     default: https://w3id.org/sal/${{ github.repository_owner }}/${{ github.event.repository.name }}
+  input_dir:
+    description: 'Directory searched for the input ttl files'
+    default: .
   output_dir:
     description: 'Output directory'
     default: ./sal-gha
   deploy:
     description: 'Deploy to Github Pages (bool)'
     default: 'true'
-  file_regex:
-    description: 'Regex matched against paths under output_dir to pick which ontologies to convert'
-    default: '.*\.ttl$'
 outputs:
   url:
     description: "Pages URL"
@@ -45,13 +45,13 @@ runs:
       uses: vliz-be-opsci/pylode-to-pages@v0
       with:
         baseuri: ${{ inputs.baseuri }}
+        nsfolder: ${{ inputs.input_dir }}
         outfolder: ${{ inputs.output_dir }}
 
     - name: Convert TTL to JSON-LD and XML
       shell: bash
       env:
         OUTPUT_DIR: ${{ inputs.output_dir }}
-        FILE_REGEX: ${{ inputs.file_regex }}
       run: |
         pip install rdflib
         sudo chmod -R 777 "$OUTPUT_DIR"
@@ -64,23 +64,17 @@ runs:
         outdir = Path(os.environ["OUTPUT_DIR"])
         outdir.mkdir(parents=True, exist_ok=True)
 
-        pattern = re.compile(os.environ["FILE_REGEX"])
-
-        matched = sorted(
-            p for p in outdir.rglob("*")
-            if p.is_file() and pattern.search(p.relative_to(outdir).as_posix())
-        )
-        print(f"{len(matched)} file(s) matched {pattern.pattern!r}")
+        matched = sorted(p for p in outdir.rglob("*.ttl") if p.is_file())
+        print(f"{len(matched)} ttl file(s) found under {outdir}")
         if not matched:
-            raise Exception(f"No files under {outdir} matched {pattern.pattern!r}")
+            raise Exception(f"No ttl files found under {outdir}")
 
         for ttl in matched:
             g = Graph()
             try:
                 g.parse(ttl, format="turtle")
             except Exception as err:
-                # a widened file_regex can pick up non-turtle files; skipping one
-                # of those should not fail the whole pages deploy
+                # one bad ttl should not fail the whole pages deploy
                 print(f"WARNING: file={ttl} could not parse as turtle, skipping: {err}")
                 continue
             print(f"converting {ttl}")
