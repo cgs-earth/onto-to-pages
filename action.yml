@@ -93,8 +93,6 @@ runs:
 
         def expand(match):
             ref = match.group(1)
-            if not all((outdir / f"{ref}.{ext}").is_file() for ext in ("json", "xml")):
-                return match.group(0)
             expanded.append(ref)
             links = "".join(
                 f'<a href="{ref}.{ext}" class="myButton">.{ext}</a>'
