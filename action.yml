@@ -86,8 +86,8 @@ runs:
             g.serialize(destination=ttl.with_suffix(".json"), format="json-ld", indent=2)
             g.serialize(destination=ttl.with_suffix(".xml"), format="xml", indent=2)
 
-        # pylode gives every ontology a lone .ttl download button; expand it to
-        # .ttl/.json/.xml, but only where the conversions were successful
+        # pylode gives every ontology that was parsed successfully a lone .ttl download button; 
+        # expand it to .ttl/.json/.xml
         button = re.compile(r'<a href="([^"]+)\.ttl" class="myButton right-align">\.ttl</a>')
         expanded = []
 
