@@ -50,6 +50,7 @@ def load_config(
     site_title: str | None,
     theme: str | None,
     show_logo: bool | None = None,
+    extensions: list[str] | None = None,
 ) -> Config:
     """Build the effective :class:`Config` for a run.
 
@@ -70,5 +71,7 @@ def load_config(
         cfg.theme = theme
     if show_logo is not None:
         cfg.show_logo = show_logo
+    if extensions is not None:
+        cfg.extensions = extensions
 
     return cfg

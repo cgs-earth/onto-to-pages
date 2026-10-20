@@ -72,7 +72,7 @@ call it directly:
 - name: Build ontology docs
   uses: cgs-earth/onto-to-pages@v0
   with:
-    input: ./ontologies
+    input_dir: ./ontologies
     output_dir: ./dist
     theme: auto
 ```
