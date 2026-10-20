@@ -1,0 +1,53 @@
+@prefix lib: <https://example.org/library#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+lib: a owl:Ontology ;
+    rdfs:label "Library Vocabulary" ;
+    rdfs:comment "A small vocabulary for describing libraries, books, and authors." ;
+    owl:versionInfo "0.1.0" ;
+    dcterms:creator "Jane Doe" .
+
+lib:Work a owl:Class ;
+    rdfs:label "Work" ;
+    rdfs:comment "Anything that can be published, written, or recorded." .
+
+lib:Book a owl:Class ;
+    rdfs:label "Book" ;
+    rdfs:comment "A bound, published work." ;
+    rdfs:subClassOf lib:Work .
+
+lib:AudioBook a owl:Class ;
+    rdfs:label "Audio Book" ;
+    rdfs:comment "A spoken recording of a work." ;
+    rdfs:subClassOf lib:Work .
+
+lib:Person a owl:Class ;
+    skos:prefLabel "Person" ;
+    skos:definition "A human being." .
+
+lib:author a owl:ObjectProperty ;
+    rdfs:label "author" ;
+    rdfs:comment "Links a work to the person who wrote it." ;
+    rdfs:domain lib:Work ;
+    rdfs:range lib:Person .
+
+lib:title a owl:DatatypeProperty ;
+    rdfs:label "title" ;
+    rdfs:comment "The title of a work." ;
+    rdfs:domain lib:Work .
+
+lib:isbn a owl:DatatypeProperty ;
+    rdfs:label "ISBN" ;
+    rdfs:comment "The ISBN of a book." ;
+    rdfs:domain lib:Book .
+
+lib:catalog a owl:AnnotationProperty ;
+    rdfs:label "catalog note" ;
+    rdfs:comment "A free-text cataloging note about a work." .
+
+lib:mobyDick a owl:NamedIndividual , lib:Book ;
+    rdfs:label "Moby-Dick" .

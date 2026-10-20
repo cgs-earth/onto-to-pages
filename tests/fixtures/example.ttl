@@ -1,0 +1,39 @@
+@prefix ex: <https://example.org/vocab#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+ex: a owl:Ontology ;
+    rdfs:label "Example Vocabulary" ;
+    rdfs:comment "A small vocabulary used to exercise onto-to-pages." ;
+    owl:versionInfo "0.1.0" ;
+    dcterms:creator "Jane Doe" .
+
+ex:Animal a owl:Class ;
+    rdfs:label "Animal" ;
+    rdfs:comment "Any living creature." .
+
+ex:Dog a owl:Class ;
+    rdfs:label "Dog" ;
+    rdfs:comment "A domesticated canine." ;
+    rdfs:subClassOf ex:Animal .
+
+ex:owner a owl:ObjectProperty ;
+    rdfs:label "owner" ;
+    rdfs:comment "Links an animal to the person who owns it." ;
+    rdfs:domain ex:Animal ;
+    rdfs:range ex:Person .
+
+ex:Person a owl:Class ;
+    skos:prefLabel "Person" ;
+    skos:definition "A human being." .
+
+ex:name a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:comment "The name of a resource." ;
+    rdfs:domain ex:Animal .
+
+ex:rex a owl:NamedIndividual , ex:Dog ;
+    rdfs:label "Rex" .

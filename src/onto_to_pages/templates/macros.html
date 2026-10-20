@@ -1,0 +1,50 @@
+{% macro info_icon(text) -%}
+<span class="info-icon" tabindex="0" aria-label="{{ text }}">i<span class="info-tooltip" role="tooltip">{{ text }}</span></span>
+{%- endmacro %}
+
+{% macro term_link(doc, ref) -%}
+{% if ref.uri in doc.local_uris %}
+<a href="#{{ ref.anchor }}">{{ ref.label }}</a>
+{% else %}
+<a href="{{ ref.uri }}">{{ ref.label }}</a>
+{% endif %}
+{%- endmacro %}
+
+{% macro term_list(doc, refs) -%}
+{% for ref in refs %}{{ term_link(doc, ref) }}{% if not loop.last %}, {% endif %}{% endfor %}
+{%- endmacro %}
+
+{% macro entity_card(doc, entity) %}
+<article class="entity" id="{{ entity.anchor }}">
+  <h3>
+    <a class="permalink" href="#{{ entity.anchor }}" aria-label="Link to {{ entity.label }}">#</a>
+    {{ entity.label }}
+    <span class="curie">{{ entity.curie }}</span>
+    {% if entity.deprecated %}<span class="badge">deprecated</span>{% endif %}
+  </h3>
+  <div class="uri">{{ entity.uri }}</div>
+  {% if entity.comment %}
+  <p class="comment">{{ entity.comment }}</p>
+  {% endif %}
+  <dl class="entity-meta">
+    {% if entity.sub_of %}
+    <div class="row"><dt>{{ "subclass of" if entity.kind == "class" else "subproperty of" }}</dt><dd>{{ term_list(doc, entity.sub_of) }}</dd></div>
+    {% endif %}
+    {% if entity.super_of %}
+    <div class="row"><dt>{{ "has subclasses" if entity.kind == "class" else "has subproperties" }}</dt><dd>{{ term_list(doc, entity.super_of) }}</dd></div>
+    {% endif %}
+    {% if entity.domain %}
+    <div class="row"><dt>domain</dt><dd>{{ term_list(doc, entity.domain) }}</dd></div>
+    {% endif %}
+    {% if entity.range %}
+    <div class="row"><dt>range</dt><dd>{{ term_list(doc, entity.range) }}</dd></div>
+    {% endif %}
+    {% if entity.is_defined_by %}
+    <div class="row"><dt>defined by</dt><dd>{{ term_link(doc, entity.is_defined_by) }}</dd></div>
+    {% endif %}
+    {% if entity.see_also %}
+    <div class="row"><dt>see also</dt><dd>{{ term_list(doc, entity.see_also) }}</dd></div>
+    {% endif %}
+  </dl>
+</article>
+{% endmacro %}
