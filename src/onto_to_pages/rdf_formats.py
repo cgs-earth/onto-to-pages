@@ -26,6 +26,11 @@ DOWNLOAD_FORMATS = {
     "nt": "nt",
 }
 
+# Directories that are never ontology sources even if a misconfigured `input`
+# ends up pointing above them; skipping these keeps a too-broad scan (e.g. an
+# `input` of "." on a whole repo) from wading through dependency/VCS trees.
+EXCLUDED_DIR_NAMES = {".git", "node_modules", ".venv", "venv", "__pycache__", ".hg", ".svn"}
+
 
 def guess_rdf_format(path: Path) -> str | None:
     """Best-effort guess of the rdflib parser format for a given file path."""
@@ -36,5 +41,9 @@ def find_source_files(root: Path, extensions: set[str] | None = None) -> list[Pa
     """Recursively find candidate RDF source files under ``root``."""
     exts = extensions or set(SOURCE_EXTENSIONS)
     return sorted(
-        p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in exts
+        p
+        for p in root.rglob("*")
+        if p.is_file()
+        and p.suffix.lower() in exts
+        and not EXCLUDED_DIR_NAMES & set(p.relative_to(root).parts[:-1])
     )

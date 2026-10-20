@@ -24,6 +24,12 @@ def _parse_graph(path: Path) -> Graph:
     fmt = guess_rdf_format(path)
     graph = Graph()
     graph.parse(path, format=fmt)
+    if len(graph) == 0:
+        # A loose extension match (.json in particular is ambiguous: plain
+        # package.json/tsconfig.json etc. parse "successfully" as JSON-LD
+        # with zero triples rather than raising) should not produce a blank
+        # ontology page.
+        raise ValueError(f"no RDF triples found in {path} (not an RDF/JSON-LD document?)")
     return graph
 
 

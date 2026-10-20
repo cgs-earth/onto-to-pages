@@ -4,7 +4,7 @@ description: >
   rdflib, no pyLODE) and optionally deploy it to GitHub Pages.
 
 inputs:
-  input:
+  input_dir:
     description: 'Path (relative to the repo root) to a single RDF file, or a directory to scan for RDF files'
     default: .
   output_dir:
@@ -19,6 +19,9 @@ inputs:
   theme:
     description: 'Default color theme: auto (visitor-toggleable), light, or dark'
     default: auto
+  extensions:
+    description: 'Comma-separated file extensions to scan for when input is a directory (e.g. ".ttl,.rdf"). Default: all supported RDF extensions.'
+    default: ''
   logo:
     description: 'Show the CGS logo in the sidebar (bool)'
     default: 'true'
@@ -58,16 +61,18 @@ runs:
     - name: Build ontology documentation
       shell: bash
       env:
-        ONTO_INPUT: ${{ inputs.input }}
+        ONTO_INPUT: ${{ inputs.input_dir }}
         ONTO_OUTPUT: ${{ inputs.output_dir }}
         ONTO_BASE_URI: ${{ inputs.base_uri }}
         ONTO_TITLE: ${{ inputs.title }}
         ONTO_THEME: ${{ inputs.theme }}
+        ONTO_EXTENSIONS: ${{ inputs.extensions }}
         ONTO_LOGO: ${{ inputs.logo }}
       run: |
         args=("$ONTO_INPUT" -o "$ONTO_OUTPUT" --theme "$ONTO_THEME")
         [ -n "$ONTO_BASE_URI" ] && args+=(--base-uri "$ONTO_BASE_URI")
         [ -n "$ONTO_TITLE" ] && args+=(--title "$ONTO_TITLE")
+        [ -n "$ONTO_EXTENSIONS" ] && args+=(--extensions "$ONTO_EXTENSIONS")
         [ "$ONTO_LOGO" = "false" ] && args+=(--no-logo)
         uv run --project "${{ github.action_path }}" onto-to-pages "${args[@]}"
 

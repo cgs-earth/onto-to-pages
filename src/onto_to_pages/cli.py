@@ -31,6 +31,13 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["auto", "light", "dark"],
         help="Default color theme (visitors can still toggle it)",
     )
+    parser.add_argument(
+        "--extensions",
+        help=(
+            "Comma-separated file extensions to scan for when input is a directory "
+            "(default: .ttl,.n3,.nt,.owl,.rdf,.xml,.jsonld,.json,.trig)"
+        ),
+    )
     logo_group = parser.add_mutually_exclusive_group()
     logo_group.add_argument(
         "--logo",
@@ -53,6 +60,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    extensions = None
+    if args.extensions is not None:
+        extensions = [e.strip() for e in args.extensions.split(",") if e.strip()]
+
     cfg = load_config(
         config_path=args.config,
         input_path=args.input,
@@ -61,11 +72,12 @@ def main(argv: list[str] | None = None) -> int:
         site_title=args.site_title,
         theme=args.theme,
         show_logo=args.show_logo,
+        extensions=extensions,
     )
 
     try:
         results = run_build(cfg)
-    except FileNotFoundError as err:
+    except (FileNotFoundError, ValueError) as err:
         print(f"error: {err}", file=sys.stderr)
         return 1
 
