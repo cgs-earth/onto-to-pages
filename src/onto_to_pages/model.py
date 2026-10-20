@@ -39,6 +39,7 @@ class Entity:
     curie: str
     label: str
     comment: str | None = None
+    notes: list[str] = field(default_factory=list)
     kind: str = ""
     deprecated: bool = False
     sub_of: list[TermRef] = field(default_factory=list)
@@ -80,6 +81,7 @@ class OntologyDoc:
     datatype_properties: list[Entity] = field(default_factory=list)
     annotation_properties: list[Entity] = field(default_factory=list)
     properties: list[Entity] = field(default_factory=list)
+    datatypes: list[Entity] = field(default_factory=list)
     individuals: list[Entity] = field(default_factory=list)
     source_files: list[str] = field(default_factory=list)
 
@@ -91,6 +93,7 @@ class OntologyDoc:
             + self.datatype_properties
             + self.annotation_properties
             + self.properties
+            + self.datatypes
             + self.individuals
         )
 
@@ -119,6 +122,7 @@ class OntologyDoc:
                 self.annotation_properties,
             ),
             ("Properties", "Properties without a more specific OWL type.", self.properties),
+            ("Datatypes", "Custom literal (value) types defined by this vocabulary.", self.datatypes),
             ("Individuals", "Named instances defined by this vocabulary.", self.individuals),
         ]
         return [(h, b, e) for h, b, e in defs if e]
@@ -145,6 +149,18 @@ def _curie(graph: Graph, uri: URIRef) -> str:
     except Exception:
         pass
     return str(uri)
+
+
+def _literal_values(graph: Graph, subject, prop) -> list[str]:
+    """All (not just the single "best") literal values of ``prop``, in the
+    preferred language. Unlike a label/comment, each skos:note is its own
+    distinct remark rather than alt-language copies of the same text, so we
+    want every one of them, not just the first match."""
+    return [
+        str(obj)
+        for obj in graph.objects(subject, prop)
+        if isinstance(obj, Literal) and (obj.language or "") in PREFERRED_LANGS
+    ]
 
 
 def _literal_value(graph: Graph, subject, properties: tuple) -> str | None:
@@ -187,6 +203,7 @@ def _is_deprecated(graph: Graph, subject) -> bool:
 def _build_entity(graph: Graph, uri: URIRef, kind: str, sub_prop) -> Entity:
     label = _literal_value(graph, uri, LABEL_PROPERTIES) or local_name(str(uri))
     comment = _literal_value(graph, uri, COMMENT_PROPERTIES)
+    notes = _literal_values(graph, uri, SKOS.note)
     sub_of = [_term_ref(graph, o) for o in graph.objects(uri, sub_prop) if not isinstance(o, BNode)]
     domain = [_term_ref(graph, o) for o in graph.objects(uri, RDFS.domain) if not isinstance(o, BNode)]
     rng = [_term_ref(graph, o) for o in graph.objects(uri, RDFS.range) if not isinstance(o, BNode)]
@@ -198,6 +215,7 @@ def _build_entity(graph: Graph, uri: URIRef, kind: str, sub_prop) -> Entity:
         curie=_curie(graph, uri),
         label=label,
         comment=comment,
+        notes=notes,
         kind=kind,
         deprecated=_is_deprecated(graph, uri),
         sub_of=sub_of,
@@ -319,8 +337,14 @@ def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_ti
     classes = collect(OWL.Class, "class") + collect(RDFS.Class, "class")
     object_properties = collect(OWL.ObjectProperty, "object property", RDFS.subPropertyOf)
     datatype_properties = collect(OWL.DatatypeProperty, "datatype property", RDFS.subPropertyOf)
-    annotation_properties = collect(OWL.AnnotationProperty, "annotation property", RDFS.subPropertyOf)
+    # owl:OntologyProperty is OWL 1's (deprecated but still seen) term for a
+    # property whose domain is an ontology itself; it serves the same
+    # documentation role as owl:AnnotationProperty, so the two are merged.
+    annotation_properties = collect(OWL.AnnotationProperty, "annotation property", RDFS.subPropertyOf) + collect(
+        OWL.OntologyProperty, "annotation property", RDFS.subPropertyOf
+    )
     generic_properties = collect(RDF.Property, "property", RDFS.subPropertyOf)
+    datatypes = collect(RDFS.Datatype, "datatype", RDFS.subClassOf)
     individuals = collect(OWL.NamedIndividual, "individual", RDFS.subClassOf)
 
     classes = _sorted(classes)
@@ -328,6 +352,7 @@ def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_ti
     datatype_properties = _sorted(datatype_properties)
     annotation_properties = _sorted(annotation_properties)
     generic_properties = _sorted(generic_properties)
+    datatypes = _sorted(datatypes)
     individuals = _sorted(individuals)
 
     _link_hierarchy(classes)
@@ -352,6 +377,7 @@ def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_ti
         datatype_properties=datatype_properties,
         annotation_properties=annotation_properties,
         properties=generic_properties,
+        datatypes=datatypes,
         individuals=individuals,
     )
 

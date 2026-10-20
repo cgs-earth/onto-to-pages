@@ -503,6 +503,13 @@ main {
   margin: 0.4rem 0;
 }
 
+.entity .note {
+  margin: 0.3rem 0;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
 .badge {
   display: inline-block;
   font-size: 0.7rem;

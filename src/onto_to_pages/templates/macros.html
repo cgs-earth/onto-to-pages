@@ -26,12 +26,15 @@
   {% if entity.comment %}
   <p class="comment">{{ entity.comment }}</p>
   {% endif %}
+  {% for note in entity.notes %}
+  <p class="note">{{ note }}</p>
+  {% endfor %}
   <dl class="entity-meta">
     {% if entity.sub_of %}
-    <div class="row"><dt>{{ "subclass of" if entity.kind == "class" else "subproperty of" }}</dt><dd>{{ term_list(doc, entity.sub_of) }}</dd></div>
+    <div class="row"><dt>{{ "subclass of" if entity.kind in ("class", "datatype") else "subproperty of" }}</dt><dd>{{ term_list(doc, entity.sub_of) }}</dd></div>
     {% endif %}
     {% if entity.super_of %}
-    <div class="row"><dt>{{ "has subclasses" if entity.kind == "class" else "has subproperties" }}</dt><dd>{{ term_list(doc, entity.super_of) }}</dd></div>
+    <div class="row"><dt>{{ "has subclasses" if entity.kind in ("class", "datatype") else "has subproperties" }}</dt><dd>{{ term_list(doc, entity.super_of) }}</dd></div>
     {% endif %}
     {% if entity.domain %}
     <div class="row"><dt>domain</dt><dd>{{ term_list(doc, entity.domain) }}</dd></div>
