@@ -47,6 +47,7 @@ class Entity:
     range: list[TermRef] = field(default_factory=list)
     see_also: list[TermRef] = field(default_factory=list)
     is_defined_by: TermRef | None = None
+    depth: int = 0
 
     @property
     def anchor(self) -> str:
@@ -124,10 +125,16 @@ class OntologyDoc:
 
 
 def local_name(uri: str) -> str:
+    # A bare namespace IRI (e.g. "https://schema.org/" or ".../dcat#") has
+    # nothing after its final separator; strip trailing separators first so
+    # these fall back to a readable name instead of an empty string.
+    trimmed = uri.rstrip("#/")
     for sep in ("#", "/"):
-        if sep in uri:
-            return uri.rsplit(sep, 1)[-1]
-    return uri
+        if sep in trimmed:
+            name = trimmed.rsplit(sep, 1)[-1]
+            if name:
+                return name
+    return trimmed or uri
 
 
 def _curie(graph: Graph, uri: URIRef) -> str:
@@ -217,6 +224,57 @@ def _sorted(entities: list[Entity]) -> list[Entity]:
     return sorted(entities, key=lambda e: e.label.lower())
 
 
+def _order_by_hierarchy(entities: list[Entity]) -> list[Entity]:
+    """Reorder ``entities`` depth-first by their subclass hierarchy.
+
+    Sets ``.depth`` on each entity so templates can indent subclasses under
+    their parent. An entity whose declared parent isn't also in this list
+    (e.g. an external/imported superclass) is treated as a root; if it has
+    more than one local parent, the alphabetically-first one is used so it's
+    still placed exactly once.
+    """
+    by_uri = {e.uri: e for e in entities}
+    children: dict[str, list[Entity]] = {}
+    roots: list[Entity] = []
+
+    for entity in entities:
+        local_parents = sorted(
+            (p for p in entity.sub_of if p.uri in by_uri),
+            key=lambda p: by_uri[p.uri].label.lower(),
+        )
+        if local_parents:
+            children.setdefault(local_parents[0].uri, []).append(entity)
+        else:
+            roots.append(entity)
+
+    for siblings in children.values():
+        siblings.sort(key=lambda e: e.label.lower())
+    roots.sort(key=lambda e: e.label.lower())
+
+    ordered: list[Entity] = []
+    seen: set[str] = set()
+
+    def visit(entity: Entity, depth: int) -> None:
+        if entity.uri in seen:
+            return
+        seen.add(entity.uri)
+        entity.depth = depth
+        ordered.append(entity)
+        for child in children.get(entity.uri, []):
+            visit(child, depth + 1)
+
+    for root in roots:
+        visit(root, 0)
+
+    # Defensive: a subClassOf cycle would otherwise leave entities unvisited.
+    for entity in entities:
+        if entity.uri not in seen:
+            entity.depth = 0
+            ordered.append(entity)
+
+    return ordered
+
+
 def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_title: str = "Ontology") -> OntologyDoc:
     """Walk ``graph`` and produce an :class:`OntologyDoc` ready for rendering."""
 
@@ -275,6 +333,8 @@ def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_ti
     _link_hierarchy(classes)
     for prop_group in (object_properties, datatype_properties, annotation_properties, generic_properties):
         _link_hierarchy(prop_group)
+
+    classes = _order_by_hierarchy(classes)
 
     return OntologyDoc(
         uri=str(ontology_uri) if ontology_uri is not None else None,

@@ -11,16 +11,31 @@
 </a>
 {% endif %}
 <h1>{{ doc.title }}</h1>
-<nav>
-  <ul>
+<nav class="toc">
+  <ul class="toc-top">
     <li><a href="#overview">Overview</a></li>
     {% if doc.namespaces %}
     <li><a href="#namespaces">Namespaces</a></li>
     {% endif %}
-    {% for heading, _, entities in doc.sections %}
-    <li><a href="#{{ heading|lower|replace(' ', '-') }}">{{ heading }} <span class="count">({{ entities|length }})</span></a></li>
-    {% endfor %}
   </ul>
+  {% if doc.sections %}
+  <div class="toc-controls">
+    <button type="button" class="toc-toggle-all" data-toc-toggle-all>Collapse all</button>
+  </div>
+  {% endif %}
+  {% for heading, _, entities in doc.sections %}
+  <details class="toc-section" open>
+    <summary>
+      <a class="toc-section-link" href="#{{ heading|lower|replace(' ', '-') }}">{{ heading }}</a>
+      <span class="count">{{ entities|length }}</span>
+    </summary>
+    <ul class="toc-items">
+      {% for entity in entities %}
+      <li{% if entity.depth %} style="margin-left: {{ entity.depth * 0.9 }}rem"{% endif %}><a href="#{{ entity.anchor }}">{{ entity.label }}</a></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
 </nav>
 {% endblock %}
 

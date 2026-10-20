@@ -15,7 +15,7 @@
 {%- endmacro %}
 
 {% macro entity_card(doc, entity) %}
-<article class="entity" id="{{ entity.anchor }}">
+<article class="entity{% if entity.depth %} entity-nested{% endif %}" id="{{ entity.anchor }}"{% if entity.depth %} style="margin-left: {{ entity.depth * 1.5 }}rem"{% endif %}>
   <h3>
     <a class="permalink" href="#{{ entity.anchor }}" aria-label="Link to {{ entity.label }}">#</a>
     {{ entity.label }}
