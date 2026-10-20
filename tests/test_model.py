@@ -90,3 +90,13 @@ def test_see_also_targets_that_are_bare_namespaces_get_a_label():
     labels = {r.label for r in doc.see_also}
     assert "" not in labels
     assert labels == {"schema.org", "dcat"}
+
+
+def test_skos_notes_are_collected_separately_from_the_main_comment():
+    doc = _load_doc()
+    dog = next(c for c in doc.classes if c.label == "Dog")
+    assert dog.comment == "A domesticated canine."
+    assert dog.notes == [
+        "Includes working and companion breeds alike.",
+        "Not to be confused with ex:Wolf, which is out of scope for this vocabulary.",
+    ]

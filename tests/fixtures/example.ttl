@@ -18,7 +18,9 @@ ex:Animal a owl:Class ;
 ex:Dog a owl:Class ;
     rdfs:label "Dog" ;
     rdfs:comment "A domesticated canine." ;
-    rdfs:subClassOf ex:Animal .
+    rdfs:subClassOf ex:Animal ;
+    skos:note "Includes working and companion breeds alike."@en ,
+        "Not to be confused with ex:Wolf, which is out of scope for this vocabulary."@en .
 
 ex:owner a owl:ObjectProperty ;
     rdfs:label "owner" ;
