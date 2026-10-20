@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+dist/
+onto-to-pages-dist/
+onto-to-pages.toml
+.pytest_cache/

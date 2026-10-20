@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% import "macros.html" as m %}
+
+{% block title %}{{ doc.title }}{% endblock %}
+
+{% block sidebar %}
+{% if back_href %}
+<a class="back-link" href="{{ back_href }}">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+  All vocabularies
+</a>
+{% endif %}
+<h1>{{ doc.title }}</h1>
+<nav class="toc">
+  <ul class="toc-top">
+    <li><a href="#overview">Overview</a></li>
+    {% if doc.namespaces %}
+    <li><a href="#namespaces">Namespaces</a></li>
+    {% endif %}
+  </ul>
+  {% if doc.sections %}
+  <div class="toc-controls">
+    <button type="button" class="toc-toggle-all" data-toc-toggle-all>Collapse all</button>
+  </div>
+  {% endif %}
+  {% for heading, _, entities in doc.sections %}
+  <details class="toc-section" open>
+    <summary>
+      <a class="toc-section-link" href="#{{ heading|lower|replace(' ', '-') }}">{{ heading }}</a>
+      <span class="count">{{ entities|length }}</span>
+    </summary>
+    <ul class="toc-items">
+      {% for entity in entities %}
+      <li{% if entity.depth %} style="margin-left: {{ entity.depth * 0.9 }}rem"{% endif %}><a href="#{{ entity.anchor }}">{{ entity.label }}</a></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<header class="doc-header" id="overview">
+  <h1>{{ doc.title }}</h1>
+  {% if doc.uri %}<div class="uri">{{ doc.uri }}</div>{% endif %}
+  {% if doc.description %}<p class="description">{{ doc.description }}</p>{% endif %}
+
+  {% if downloads %}
+  <div class="downloads">
+    {% for ext, href in downloads %}
+    <a href="{{ href }}" download>.{{ ext }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <table class="meta-table">
+    {% if doc.version_info %}<tr><td>version</td><td>{{ doc.version_info }}</td></tr>{% endif %}
+    {% if doc.version_iri %}<tr><td>version IRI</td><td>{{ doc.version_iri }}</td></tr>{% endif %}
+    {% if doc.creators %}<tr><td>creators</td><td>{{ doc.creators|join(', ') }}</td></tr>{% endif %}
+    {% if doc.license %}<tr><td>license</td><td><a href="{{ doc.license }}">{{ doc.license }}</a></td></tr>{% endif %}
+    {% if doc.imports %}<tr><td>imports</td><td>{{ m.term_list(doc, doc.imports) }}</td></tr>{% endif %}
+    {% if doc.see_also %}<tr><td>see also</td><td>{{ m.term_list(doc, doc.see_also) }}</td></tr>{% endif %}
+  </table>
+</header>
+
+{% if doc.namespaces %}
+<section class="section" id="namespaces">
+  <div class="section-heading">
+    <h2>Namespaces</h2>
+    {{ m.info_icon("Prefixes used as shorthand for full URIs throughout this document.") }}
+  </div>
+  <table class="meta-table">
+    {% for ns in doc.namespaces %}
+    <tr><td>{{ ns.prefix }}</td><td><a href="{{ ns.uri }}">{{ ns.uri }}</a></td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endif %}
+
+{% for heading, blurb, entities in doc.sections %}
+<section class="section" id="{{ heading|lower|replace(' ', '-') }}">
+  <div class="section-heading">
+    <h2>{{ heading }}</h2>
+    {{ m.info_icon(blurb) }}
+  </div>
+  {% for entity in entities %}
+  {{ m.entity_card(doc, entity) }}
+  {% endfor %}
+</section>
+{% endfor %}
+{% endblock %}

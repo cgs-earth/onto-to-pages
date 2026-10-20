@@ -1,0 +1,22 @@
+# Copy to onto-to-pages.toml and adjust. CLI flags always override these values.
+
+# A single RDF file, or a directory to scan recursively for RDF files.
+input = "./ontologies"
+
+# Where the generated site is written.
+output = "./dist"
+
+# Preferred when a source file declares more than one owl:Ontology.
+# base_uri = "https://example.org/vocab"
+
+# Shown on the generated index page when building a directory of ontologies.
+# site_title = "My Vocabularies"
+
+# "auto" (visitor can toggle light/dark), "light", or "dark".
+theme = "auto"
+
+# Show the CGS logo in the sidebar. Set to false to turn it off.
+show_logo = true
+
+# Restrict which file extensions are scanned when input is a directory.
+# extensions = [".ttl", ".rdf"]

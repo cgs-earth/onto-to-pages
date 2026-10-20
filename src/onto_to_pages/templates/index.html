@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site_title }}{% endblock %}
+
+{% block sidebar %}
+<h1>{{ site_title }}</h1>
+<nav>
+  <ul>
+    {% for doc, href in entries %}
+    <li><a href="{{ href }}">{{ doc.title }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endblock %}
+
+{% block content %}
+<header class="doc-header" id="overview">
+  <h1>{{ site_title }}</h1>
+  <p class="description">{{ entries|length }} ontolog{{ "y" if entries|length == 1 else "ies" }} documented in this build.</p>
+</header>
+
+<section class="section">
+  <div class="ontology-grid">
+    {% for doc, href in entries %}
+    <article class="ontology-card">
+      <h2><a href="{{ href }}">{{ doc.title }}</a></h2>
+      {% if doc.uri %}<div class="uri">{{ doc.uri }}</div>{% endif %}
+      {% if doc.description %}<p>{{ doc.description }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,16 +1,27 @@
-name: PyLODE Ontology to GitHub Pages
+name: Ontology to GitHub Pages
+description: >
+  Generate a static documentation site for an RDF vocabulary/ontology (using
+  rdflib, no pyLODE) and optionally deploy it to GitHub Pages.
 
-description: 'Greet someone'
 inputs:
-  baseuri:
-    description: 'Base URI of ontology'
-    default: https://w3id.org/sal/${{ github.repository_owner }}/${{ github.event.repository.name }}
-  input_dir:
-    description: 'Directory searched for the input ttl files'
+  input:
+    description: 'Path (relative to the repo root) to a single RDF file, or a directory to scan for RDF files'
     default: .
   output_dir:
     description: 'Output directory'
-    default: ./sal-gha
+    default: ./onto-to-pages-dist
+  base_uri:
+    description: 'Ontology IRI to prefer when a source file defines more than one owl:Ontology'
+    default: ''
+  title:
+    description: 'Site title shown on the generated index page (only used for directory builds)'
+    default: ''
+  theme:
+    description: 'Default color theme: auto (visitor-toggleable), light, or dark'
+    default: auto
+  logo:
+    description: 'Show the CGS logo in the sidebar (bool)'
+    default: 'true'
   deploy:
     description: |
       Deploy to Github Pages (bool). Set to false to only generate the docs into
@@ -25,8 +36,9 @@ runs:
   using: composite
   steps:
     - uses: actions/checkout@v5
-    - name: Setup Python
-      uses: actions/setup-python@v6
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
         python-version: '3.12'
 
@@ -43,70 +55,21 @@ runs:
             "build_type": "workflow"
           }'
 
-    - name: Build Pages
-      uses: vliz-be-opsci/pylode-to-pages@v0
-      with:
-        baseuri: ${{ inputs.baseuri }}
-        nsfolder: ${{ inputs.input_dir }}
-        outfolder: ${{ inputs.output_dir }}
-
-    - name: Convert TTL to JSON-LD and XML
+    - name: Build ontology documentation
       shell: bash
       env:
-        OUTPUT_DIR: ${{ inputs.output_dir }}
+        ONTO_INPUT: ${{ inputs.input }}
+        ONTO_OUTPUT: ${{ inputs.output_dir }}
+        ONTO_BASE_URI: ${{ inputs.base_uri }}
+        ONTO_TITLE: ${{ inputs.title }}
+        ONTO_THEME: ${{ inputs.theme }}
+        ONTO_LOGO: ${{ inputs.logo }}
       run: |
-        pip install rdflib
-        sudo chmod -R 777 "$OUTPUT_DIR"
-        python <<'EOF'
-        import os
-        import re
-        from pathlib import Path
-        from rdflib import Graph
-
-        outdir = Path(os.environ["OUTPUT_DIR"])
-        outdir.mkdir(parents=True, exist_ok=True)
-
-        matched = sorted(p for p in outdir.rglob("*.ttl") if p.is_file())
-        print(f"{len(matched)} ttl file(s) found under {outdir}")
-        if not matched:
-            raise Exception(f"No ttl files found under {outdir}")
-
-        for ttl in matched:
-            g = Graph()
-            try:
-                g.parse(ttl, format="turtle")
-            except Exception as err:
-                # one bad ttl should not fail the whole pages deploy
-                print(f"WARNING: file={ttl} could not parse as turtle, skipping: {err}")
-                continue
-            print(f"converting {ttl}")
-
-            # write beside the source so the paths match the hrefs pylode puts in
-            # index.html, which are relative to outdir and include any subfolder
-            g.serialize(destination=ttl.with_suffix(".json"), format="json-ld", indent=2)
-            g.serialize(destination=ttl.with_suffix(".xml"), format="xml", indent=2)
-
-        # pylode gives every ontology that was parsed successfully a lone .ttl download button; 
-        # expand it to .ttl/.json/.xml
-        button = re.compile(r'<a href="([^"]+)\.ttl" class="myButton right-align">\.ttl</a>')
-        expanded = []
-
-        def expand(match):
-            ref = match.group(1)
-            expanded.append(ref)
-            links = "".join(
-                f'<a href="{ref}.{ext}" class="myButton">.{ext}</a>'
-                for ext in ("ttl", "json", "xml")
-            )
-            return f'<div class="right-align">{links}</div>'
-
-        index = outdir / "index.html"
-        if index.is_file():
-            index.write_text(button.sub(expand, index.read_text()))
-            print(f"expanded download buttons for {len(expanded)} entr(ies): {expanded}")
-        else:
-            raise Exception(f"{index} not found, skipped download button rewrite")
-        EOF
+        args=("$ONTO_INPUT" -o "$ONTO_OUTPUT" --theme "$ONTO_THEME")
+        [ -n "$ONTO_BASE_URI" ] && args+=(--base-uri "$ONTO_BASE_URI")
+        [ -n "$ONTO_TITLE" ] && args+=(--title "$ONTO_TITLE")
+        [ "$ONTO_LOGO" = "false" ] && args+=(--no-logo)
+        uv run --project "${{ github.action_path }}" onto-to-pages "${args[@]}"
 
     - name: Upload Pages Artifact
       if: inputs.deploy == 'true'
