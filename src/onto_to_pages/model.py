@@ -347,6 +347,16 @@ def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_ti
     datatypes = collect(RDFS.Datatype, "datatype", RDFS.subClassOf)
     individuals = collect(OWL.NamedIndividual, "individual", RDFS.subClassOf)
 
+    # Alignment files often state subclass axioms about terms without ever
+    # declaring them as classes; rdfs:subClassOf implies its subject is one
+    # (RDFS entailment rule rdfs9), so document those too. This runs after
+    # every typed collection so an explicit declaration always wins.
+    inferred = {
+        s for s in graph.subjects(RDFS.subClassOf, None) if isinstance(s, URIRef)
+    } - {URIRef(u) for u in classified}
+    classes += [_build_entity(graph, u, "class", RDFS.subClassOf) for u in inferred]
+    classified.update(str(u) for u in inferred)
+
     classes = _sorted(classes)
     object_properties = _sorted(object_properties)
     datatype_properties = _sorted(datatype_properties)
