@@ -60,3 +60,18 @@ def test_non_rdf_json_files_are_skipped_not_listed_as_ontologies(tmp_path):
 
     assert len(results) == 1
     assert results[0].source_file.name == "example.ttl"
+
+
+def test_directory_build_writes_sibling_serializations_for_content_negotiation(tmp_path):
+    # w3id-style redirects send RDF Accept headers to <term>.ttl next to
+    # <term>/, so those files must exist alongside the per-term directory.
+    input_dir = tmp_path / "ontologies"
+    input_dir.mkdir()
+    (input_dir / "example.ttl").write_text(FIXTURE.read_text())
+
+    cfg = Config(input=input_dir, output=tmp_path / "dist")
+    run_build(cfg)
+
+    for ext in ("ttl", "xml", "json", "nt"):
+        assert (cfg.output / f"example.{ext}").is_file()
+        assert (cfg.output / "example" / f"example.{ext}").is_file()

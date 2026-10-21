@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,12 +34,26 @@ def _parse_graph(path: Path) -> Graph:
     return graph
 
 
-def _write_downloads(graph: Graph, out_dir: Path, basename: str) -> list[tuple[str, str]]:
-    """Serialize ``graph`` into every download format; returns (label, href) pairs."""
+def _write_downloads(
+    graph: Graph,
+    out_dir: Path,
+    basename: str,
+    *,
+    sibling_dir: Path | None = None,
+) -> list[tuple[str, str]]:
+    """Serialize ``graph`` into every download format; returns (label, href) pairs.
+
+    If ``sibling_dir`` is given, each serialization is also copied there so
+    that ``<term>.ttl`` resolves next to ``<term>/`` for content-negotiating
+    redirects (e.g. w3id.org) that target the sibling path.
+    """
     downloads = []
     for ext, fmt in DOWNLOAD_FORMATS.items():
         dest = out_dir / f"{basename}.{ext}"
         graph.serialize(destination=dest, format=fmt, encoding="utf-8")
+        if sibling_dir is not None:
+            sibling_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(dest, sibling_dir / dest.name)
         downloads.append((ext, dest.name))
     return downloads
 
@@ -61,13 +76,19 @@ def _render_one(
     *,
     static_prefix: str,
     back_href: str | None = None,
+    write_siblings: bool = False,
 ) -> BuildResult:
     graph = _parse_graph(source)
     doc = build_ontology_doc(graph, base_uri=cfg.base_uri, fallback_title=source.stem)
     doc.source_files = [source.name]
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    downloads = _write_downloads(graph, out_dir, source.stem)
+    downloads = _write_downloads(
+        graph,
+        out_dir,
+        source.stem,
+        sibling_dir=out_dir.parent if write_siblings else None,
+    )
 
     html = render_ontology_page(
         doc,
@@ -107,7 +128,14 @@ def run_build(cfg: Config) -> list[BuildResult]:
         back_href = f"{static_prefix}index.html" if len(sources) > 1 else None
         try:
             results.append(
-                _render_one(source, out_dir, cfg, static_prefix=static_prefix, back_href=back_href)
+                _render_one(
+                    source,
+                    out_dir,
+                    cfg,
+                    static_prefix=static_prefix,
+                    back_href=back_href,
+                    write_siblings=True,
+                )
             )
         except Exception as err:  # one bad file should not sink the whole build
             print(f"WARNING: skipping {source} ({err})")
