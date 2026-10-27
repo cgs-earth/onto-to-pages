@@ -31,11 +31,13 @@ def render_ontology_page(
     static_prefix: str = "",
     show_logo: bool = True,
     back_href: str | None = None,
+    jsonld: str | None = None,
 ) -> str:
     template = _ENV.get_template("ontology.html")
     return template.render(
         doc=doc,
         downloads=downloads,
+        jsonld=jsonld,
         theme=theme,
         site_title=site_title,
         static_prefix=static_prefix,

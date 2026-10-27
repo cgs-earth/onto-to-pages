@@ -3,6 +3,14 @@
 
 {% block title %}{{ doc.title }}{% endblock %}
 
+{% block head %}
+{% if jsonld %}
+<script type="application/ld+json">
+{{ jsonld|safe }}
+</script>
+{% endif %}
+{% endblock %}
+
 {% block sidebar %}
 {% if back_href %}
 <a class="back-link" href="{{ back_href }}">
