@@ -243,13 +243,13 @@ def _sorted(entities: list[Entity]) -> list[Entity]:
 
 
 def _order_by_hierarchy(entities: list[Entity]) -> list[Entity]:
-    """Reorder ``entities`` depth-first by their subclass hierarchy.
+    """Reorder ``entities`` depth-first by their subclass/subproperty hierarchy.
 
-    Sets ``.depth`` on each entity so templates can indent subclasses under
+    Sets ``.depth`` on each entity so templates can indent children under
     their parent. An entity whose declared parent isn't also in this list
-    (e.g. an external/imported superclass) is treated as a root; if it has
-    more than one local parent, the alphabetically-first one is used so it's
-    still placed exactly once.
+    (e.g. an external/imported superclass, or a property of a different OWL
+    type) is treated as a root; if it has more than one local parent, the
+    alphabetically-first one is used so it's still placed exactly once.
     """
     by_uri = {e.uri: e for e in entities}
     children: dict[str, list[Entity]] = {}
@@ -370,6 +370,10 @@ def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_ti
         _link_hierarchy(prop_group)
 
     classes = _order_by_hierarchy(classes)
+    object_properties = _order_by_hierarchy(object_properties)
+    datatype_properties = _order_by_hierarchy(datatype_properties)
+    annotation_properties = _order_by_hierarchy(annotation_properties)
+    generic_properties = _order_by_hierarchy(generic_properties)
 
     return OntologyDoc(
         uri=str(ontology_uri) if ontology_uri is not None else None,
