@@ -58,6 +58,15 @@ def _write_downloads(
     return downloads
 
 
+def _embeddable_jsonld(graph: Graph) -> str:
+    """JSON-LD for ``graph``, made safe to drop inside a ``<script>`` element.
+
+    Escaping ``<`` as ``\\u003c`` keeps literals like ``</script>`` or
+    ``<!--`` from terminating the element early, and is still valid JSON.
+    """
+    return graph.serialize(format="json-ld").replace("<", "\\u003c")
+
+
 def _write_static_assets(output_root: Path) -> None:
     static_dir = output_root / "_static"
     static_dir.mkdir(parents=True, exist_ok=True)
@@ -93,6 +102,7 @@ def _render_one(
     html = render_ontology_page(
         doc,
         downloads=downloads,
+        jsonld=_embeddable_jsonld(graph),
         theme=cfg.theme,
         site_title=cfg.site_title,
         static_prefix=static_prefix,

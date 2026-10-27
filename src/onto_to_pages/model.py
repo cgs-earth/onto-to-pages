@@ -243,13 +243,13 @@ def _sorted(entities: list[Entity]) -> list[Entity]:
 
 
 def _order_by_hierarchy(entities: list[Entity]) -> list[Entity]:
-    """Reorder ``entities`` depth-first by their subclass hierarchy.
+    """Reorder ``entities`` depth-first by their subclass/subproperty hierarchy.
 
-    Sets ``.depth`` on each entity so templates can indent subclasses under
+    Sets ``.depth`` on each entity so templates can indent children under
     their parent. An entity whose declared parent isn't also in this list
-    (e.g. an external/imported superclass) is treated as a root; if it has
-    more than one local parent, the alphabetically-first one is used so it's
-    still placed exactly once.
+    (e.g. an external/imported superclass, or a property of a different OWL
+    type) is treated as a root; if it has more than one local parent, the
+    alphabetically-first one is used so it's still placed exactly once.
     """
     by_uri = {e.uri: e for e in entities}
     children: dict[str, list[Entity]] = {}
@@ -347,6 +347,16 @@ def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_ti
     datatypes = collect(RDFS.Datatype, "datatype", RDFS.subClassOf)
     individuals = collect(OWL.NamedIndividual, "individual", RDFS.subClassOf)
 
+    # Alignment files often state subclass axioms about terms without ever
+    # declaring them as classes; rdfs:subClassOf implies its subject is one
+    # (RDFS entailment rule rdfs9), so document those too. This runs after
+    # every typed collection so an explicit declaration always wins.
+    inferred = {
+        s for s in graph.subjects(RDFS.subClassOf, None) if isinstance(s, URIRef)
+    } - {URIRef(u) for u in classified}
+    classes += [_build_entity(graph, u, "class", RDFS.subClassOf) for u in inferred]
+    classified.update(str(u) for u in inferred)
+
     classes = _sorted(classes)
     object_properties = _sorted(object_properties)
     datatype_properties = _sorted(datatype_properties)
@@ -360,6 +370,10 @@ def build_ontology_doc(graph: Graph, *, base_uri: str | None = None, fallback_ti
         _link_hierarchy(prop_group)
 
     classes = _order_by_hierarchy(classes)
+    object_properties = _order_by_hierarchy(object_properties)
+    datatype_properties = _order_by_hierarchy(datatype_properties)
+    annotation_properties = _order_by_hierarchy(annotation_properties)
+    generic_properties = _order_by_hierarchy(generic_properties)
 
     return OntologyDoc(
         uri=str(ontology_uri) if ontology_uri is not None else None,

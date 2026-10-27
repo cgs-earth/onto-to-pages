@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from rdflib import Graph
+from rdflib.compare import isomorphic
+
 from onto_to_pages.config import Config
 from onto_to_pages.build import run_build
 
@@ -22,6 +25,20 @@ def test_single_file_build_writes_expected_files(tmp_path):
     assert "Example Vocabulary" in html
     assert "Dog" in html
     assert "domesticated canine" in html
+
+
+def test_page_head_embeds_jsonld(tmp_path):
+    cfg = Config(input=FIXTURE, output=tmp_path / "dist")
+    out_dir = run_build(cfg)[0].output_dir
+
+    html = (out_dir / "index.html").read_text()
+    head = html.split("</head>")[0]
+    start = head.index('<script type="application/ld+json">') + len('<script type="application/ld+json">')
+    payload = head[start:head.index("</script>", start)]
+
+    embedded = Graph().parse(data=payload, format="json-ld")
+    source = Graph().parse(FIXTURE, format="turtle")
+    assert isomorphic(embedded, source)
 
 
 def test_directory_build_produces_top_level_index(tmp_path):

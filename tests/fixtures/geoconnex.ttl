@@ -219,6 +219,7 @@ hyf:upstreamWaterBody
 #################################################################
 
 schema:Place
+    a owl:Class ;
     rdfs:subClassOf geo:Feature ;
     skos:editorialNote "Use schema:Place for web discovery and GeoSPARQL geo:Feature/geo:Geometry for formal spatial reasoning."@en .
 

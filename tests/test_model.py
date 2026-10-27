@@ -100,3 +100,61 @@ def test_skos_notes_are_collected_separately_from_the_main_comment():
         "Includes working and companion breeds alike.",
         "Not to be confused with ex:Wolf, which is out of scope for this vocabulary.",
     ]
+
+
+def test_untyped_subclass_subjects_inferred_as_classes():
+    graph = Graph()
+    graph.parse(
+        data="""
+        @prefix ex: <http://example.org/> .
+        @prefix owl: <http://www.w3.org/2002/07/owl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+        ex:Feature rdfs:subClassOf ex:External .
+        ex:Network a owl:Class ; rdfs:subClassOf ex:Feature .
+        """,
+        format="turtle",
+    )
+    doc = build_ontology_doc(graph)
+
+    by_label = {c.label: c for c in doc.classes}
+    # ex:Feature has no rdf:type but is the subject of rdfs:subClassOf.
+    assert "Feature" in by_label
+    # ex:External is only ever an object, so it stays external.
+    assert "External" not in by_label
+    # The inferred class participates in the hierarchy like a declared one.
+    assert by_label["Feature"].depth == 0
+    assert by_label["Network"].depth == 1
+    assert "Network" in [r.label for r in by_label["Feature"].super_of]
+
+
+def test_properties_ordered_by_subproperty_hierarchy():
+    graph = Graph()
+    graph.parse(
+        data="""
+        @prefix ex: <http://example.org/> .
+        @prefix owl: <http://www.w3.org/2002/07/owl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+        ex:related a owl:ObjectProperty .
+        ex:parent a owl:ObjectProperty ; rdfs:subPropertyOf ex:related .
+        ex:mother a owl:ObjectProperty ; rdfs:subPropertyOf ex:parent .
+        ex:another a owl:ObjectProperty .
+
+        ex:identifier a owl:DatatypeProperty .
+        ex:isbn a owl:DatatypeProperty ; rdfs:subPropertyOf ex:identifier .
+        """,
+        format="turtle",
+    )
+    doc = build_ontology_doc(graph)
+
+    assert [(p.label, p.depth) for p in doc.object_properties] == [
+        ("another", 0),
+        ("related", 0),
+        ("parent", 1),
+        ("mother", 2),
+    ]
+    assert [(p.label, p.depth) for p in doc.datatype_properties] == [
+        ("identifier", 0),
+        ("isbn", 1),
+    ]
