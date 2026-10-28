@@ -608,3 +608,59 @@ footer.site-footer p {
     padding: 1.25rem;
   }
 }
+
+.downloads {
+  align-items: center;
+}
+
+.downloads a[aria-current="page"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.downloads a.download-link {
+  margin-left: -0.4rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.rdf-box {
+  position: relative;
+  margin-top: 1.5rem;
+}
+
+.rdf-source {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-code-bg);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+/* the global code style would paint a second box inside the <pre> */
+.rdf-source code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.25rem 0.8rem;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}

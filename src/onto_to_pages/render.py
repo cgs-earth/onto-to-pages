@@ -25,7 +25,7 @@ _ENV = _environment()
 def render_ontology_page(
     doc: OntologyDoc,
     *,
-    downloads: list[tuple[str, str]],
+    downloads: list[tuple[str, str, str]],
     theme: str,
     site_title: str | None,
     static_prefix: str = "",
@@ -43,6 +43,32 @@ def render_ontology_page(
         static_prefix=static_prefix,
         show_logo=show_logo,
         back_href=back_href,
+    )
+
+
+def render_format_view_page(
+    *,
+    title: str,
+    ext: str,
+    content: str,
+    raw_href: str,
+    downloads: list[tuple[str, str, str]],
+    theme: str,
+    site_title: str | None,
+    static_prefix: str = "",
+    show_logo: bool = True,
+) -> str:
+    template = _ENV.get_template("format_view.html")
+    return template.render(
+        title=title,
+        ext=ext,
+        content=content,
+        raw_href=raw_href,
+        downloads=downloads,
+        theme=theme,
+        site_title=site_title,
+        static_prefix=static_prefix,
+        show_logo=show_logo,
     )
 
 

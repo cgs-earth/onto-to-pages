@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} (.{{ ext }}){% endblock %}
+
+{% block sidebar %}
+<nav class="toc">
+  <a href="index.html">&larr; Back to documentation</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<header class="doc-header">
+  <h1>{{ title }}</h1>
+  <p class="description">Serialized as <code>.{{ ext }}</code></p>
+  <div class="downloads">
+    {% for other_ext, _raw, view in downloads %}
+    <a href="{{ view }}"{% if other_ext == ext %} aria-current="page"{% endif %}>.{{ other_ext }}</a>
+    {% endfor %}
+    <a href="{{ raw_href }}" download>Download</a>
+  </div>
+</header>
+<div class="rdf-box">
+  <button type="button" class="copy-button" data-copy-target="rdf-source">Copy</button>
+  <pre class="rdf-source" id="rdf-source"><code>{{ content }}</code></pre>
+</div>
+<script>
+  document.querySelector("[data-copy-target]").addEventListener("click", function (event) {
+    var button = event.currentTarget;
+    var text = document.getElementById(button.dataset.copyTarget).textContent;
+    function done(label) {
+      button.textContent = label;
+      setTimeout(function () { button.textContent = "Copy"; }, 1500);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { done("Copied!"); }, function () { done("Failed"); });
+    } else {
+      var area = document.createElement("textarea");
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      try { done(document.execCommand("copy") ? "Copied!" : "Failed"); } catch (e) { done("Failed"); }
+      document.body.removeChild(area);
+    }
+  });
+</script>
+{% endblock %}

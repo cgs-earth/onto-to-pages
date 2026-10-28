@@ -11,7 +11,12 @@ from rdflib import Graph
 from .config import Config
 from .model import OntologyDoc, build_ontology_doc
 from .rdf_formats import DOWNLOAD_FORMATS, find_source_files, guess_rdf_format
-from .render import render_index_page, render_ontology_page, static_files
+from .render import (
+    render_format_view_page,
+    render_index_page,
+    render_ontology_page,
+    static_files,
+)
 
 
 @dataclass
@@ -40,8 +45,11 @@ def _write_downloads(
     basename: str,
     *,
     sibling_dir: Path | None = None,
-) -> list[tuple[str, str]]:
-    """Serialize ``graph`` into every download format; returns (label, href) pairs.
+) -> list[tuple[str, str, str]]:
+    """Serialize ``graph`` into every download format.
+
+    Returns (ext, raw href, view href) triples; the view href is a
+    ``<name>.<ext>.html`` page showing the serialization in the browser.
 
     If ``sibling_dir`` is given, each serialization is also copied there so
     that ``<term>.ttl`` resolves next to ``<term>/`` for content-negotiating
@@ -54,8 +62,31 @@ def _write_downloads(
         if sibling_dir is not None:
             sibling_dir.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(dest, sibling_dir / dest.name)
-        downloads.append((ext, dest.name))
+        downloads.append((ext, dest.name, f"{dest.name}.html"))
     return downloads
+
+
+def _write_format_views(
+    out_dir: Path,
+    downloads: list[tuple[str, str, str]],
+    title: str,
+    cfg: Config,
+    static_prefix: str,
+) -> None:
+    """Write a viewer page per serialization so it can be read without downloading."""
+    for ext, raw_href, view_href in downloads:
+        html = render_format_view_page(
+            title=title,
+            ext=ext,
+            content=(out_dir / raw_href).read_text(encoding="utf-8"),
+            raw_href=raw_href,
+            downloads=downloads,
+            theme=cfg.theme,
+            site_title=cfg.site_title,
+            static_prefix=static_prefix,
+            show_logo=cfg.show_logo,
+        )
+        (out_dir / view_href).write_text(html, encoding="utf-8")
 
 
 def _embeddable_jsonld(graph: Graph) -> str:
@@ -98,6 +129,7 @@ def _render_one(
         source.stem,
         sibling_dir=out_dir.parent if write_siblings else None,
     )
+    _write_format_views(out_dir, downloads, doc.title, cfg, static_prefix)
 
     html = render_ontology_page(
         doc,

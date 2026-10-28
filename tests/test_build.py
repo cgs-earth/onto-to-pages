@@ -18,6 +18,7 @@ def test_single_file_build_writes_expected_files(tmp_path):
     assert (out_dir / "index.html").is_file()
     assert (out_dir / "example.ttl").is_file()
     assert (out_dir / "example.xml").is_file()
+    assert "<html" in (out_dir / "example.ttl.html").read_text()
     assert (out_dir / "example.json").is_file()
     assert (out_dir / "_static" / "style.css").is_file()
 
