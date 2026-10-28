@@ -36,7 +36,7 @@ Open `dist/index.html` in a browser. Supported input formats: Turtle, RDF/XML,
 N3, N-Triples, JSON-LD, and TriG (whatever rdflib can parse, guessed from the
 file extension).
 
-Each generated page gets `.ttl`/`.xml`/`.json`/`.nt` download buttons,
+Each generated page gets `.ttl`/`.xml`/`.json`/`.nt` buttons that open the serialization in the browser (with a separate download link),
 serialized from the parsed graph regardless of the input format.
 
 ### Configuration file

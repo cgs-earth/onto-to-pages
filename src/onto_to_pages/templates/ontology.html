@@ -55,8 +55,9 @@
 
   {% if downloads %}
   <div class="downloads">
-    {% for ext, href in downloads %}
-    <a href="{{ href }}" download>.{{ ext }}</a>
+    {% for ext, href, view_href in downloads %}
+    <a href="{{ view_href }}" title="View .{{ ext }} in the browser">.{{ ext }}</a>
+    <a class="download-link" href="{{ href }}" download aria-label="Download .{{ ext }}" title="Download .{{ ext }}">&#8595;</a>
     {% endfor %}
   </div>
   {% endif %}
