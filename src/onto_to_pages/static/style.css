@@ -30,7 +30,7 @@
   --color-text: #e9edee;
   --color-text-muted: #9aa5ab;
   --color-border: #3a454c;
-  --color-code-bg: #1f2b29;
+  --color-code-bg: #2a2e31;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
@@ -45,7 +45,7 @@
     --color-text: #e9edee;
     --color-text-muted: #9aa5ab;
     --color-border: #3a454c;
-    --color-code-bg: #1f2b29;
+    --color-code-bg: #2a2e31;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   }
 }
